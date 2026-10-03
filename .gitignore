@@ -1,8 +1,42 @@
-   .env
-   .venv/
-   __pycache__/
-   qdrant_storage/
-   *.pyc
+# Entorno virtual
+.venv/
+venv/
 
-   taller-03-agentes.pdf
-   taller-03-v2-solver-multiagente.pdf
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VS Code
+.vscode/
+
+# Variables de entorno / credenciales
+.env
+*.env
+
+# Datos
+data/input/*
+data/output/*
+
+codigoreferencia/*
+
+# Mantener las carpetas aunque estén vacías
+!data/input/.gitkeep
+!data/output/.gitkeep
+
+# Temporales
+*.tmp
+*.log
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+taller-03-agentes.pdf
+taller-03-v2-solver-multiagente.pdf
+
+data/input/*.txt
+data/output/*.sqlite

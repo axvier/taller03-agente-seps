@@ -11,6 +11,11 @@ Diseño (3 tablas, esquema estrella mínimo):
 
 Limpieza: fecha «2026-2-28» → «2026-02-28»; saldo «216959,86» → 216959.86; saldo vacío → NULL.
 
+Además crea la tabla `indicadores` (8 indicadores de las fichas metodológicas de la SEPS,
+ver src/indicadores.py) y `indicadores_catalogo`, que describe cada fórmula.
+Para los promedios de ROA, ROE y eficiencia hace falta el diciembre del año anterior:
+data/input debe traer también el archivo de diciembre de 2025.
+
 Uso:  python src/construir_base.py
 """
 import sqlite3
@@ -19,9 +24,14 @@ from pathlib import Path
 
 import pandas as pd
 
+import indicadores as ind
+
 ROOT = Path(__file__).resolve().parent.parent
 RAW_PATH = ROOT / "data" / "input"
 DB_PATH = ROOT / "data" / "output" / "seps.sqlite"
+# Del archivo 2025 (cortes trimestrales) solo se usa diciembre: es el mes previo que piden los
+# promedios de ROA, ROE y eficiencia. Los trimestres anteriores romperían la ventana mensual.
+FECHA_MINIMA = "2025-12-31"
 NIVEL = {1: 1, 2: 2, 4: 3, 6: 4}          # largo del código → nivel del catálogo
 LARGO_PADRE = {2: 1, 4: 2, 6: 4}          # largo del código → largo del código padre
 
@@ -53,7 +63,11 @@ def leer_crudo() -> pd.DataFrame:
     archivos = sorted(p for p in RAW_PATH.glob("*") if p.suffix.lower() in {".txt", ".csv"})
     if not archivos:
         sys.exit(f"No hay .txt ni .csv en {RAW_PATH}")
-    partes = [pd.read_csv(a, sep="\t", dtype=str, encoding="utf-8", quotechar='"') for a in archivos]
+    partes = []
+    for a in archivos:
+        p = pd.read_csv(a, sep="\t", dtype=str, encoding="utf-8", quotechar='"')
+        print(f"  {a.name}: {len(p):,} filas · fechas: {sorted(p.iloc[:, 0].str.strip().unique())}")
+        partes.append(p)
     df = pd.concat(partes, ignore_index=True)
     df.columns = ["fecha", "segmento", "ruc", "razon_social", "cuenta", "descripcion", "saldo"]
     print(f"leídas {len(df):,} filas de {len(archivos)} archivo(s)")
@@ -61,7 +75,19 @@ def leer_crudo() -> pd.DataFrame:
 
 
 def limpiar(df: pd.DataFrame) -> pd.DataFrame:
-    df["fecha"] = pd.to_datetime(df["fecha"], format="%Y-%m-%d").dt.strftime("%Y-%m-%d")
+    df["fecha"] = pd.to_datetime(df["fecha"].str.strip(), format="%Y-%m-%d").dt.strftime("%Y-%m-%d")
+    antes = len(df)
+    df = df[df["fecha"] >= FECHA_MINIMA].copy()
+    print(f"filtro fecha >= {FECHA_MINIMA}: se descartan {antes - len(df):,} filas · "
+          f"quedan los cortes {sorted(df['fecha'].unique())}")
+    # El diciembre previo solo sirve para las entidades que reportan en 2026: las que aparecen
+    # únicamente en diciembre inflarían la tabla entidades y no tienen ningún indicador del año.
+    del_anio = df["fecha"] > FECHA_MINIMA
+    rucs_anio = set(df.loc[del_anio, "ruc"].str.strip())
+    solo_dic = df[~del_anio & ~df["ruc"].str.strip().isin(rucs_anio)]
+    print(f"entidades que solo aparecen en {FECHA_MINIMA}: {solo_dic['ruc'].nunique()} "
+          f"(por segmento: {solo_dic.drop_duplicates('ruc')['segmento'].value_counts().to_dict()}) → se descartan")
+    df = df[del_anio | df["ruc"].str.strip().isin(rucs_anio)].copy()
     s = df["saldo"].str.strip()
     if s.str.contains(r"\.", na=False).any():
         sys.exit("Hay saldos con punto: revisar el separador de miles antes de convertir.")
@@ -95,6 +121,27 @@ def tablas(df: pd.DataFrame):
     return entidades, cuentas, saldos
 
 
+def crear_indicadores(conn: sqlite3.Connection) -> None:
+    existentes = {r[0] for r in conn.execute("SELECT codigo FROM cuentas")}
+    faltan = [c for c in ind.CODIGOS if c not in existentes]
+    print(f"\ncuentas de las fichas que no están en el catálogo: {len(faltan)} {faltan}")
+    conn.executescript(ind.SQL_BASE + ind.SQL_INDICADORES + ind.SQL_CATALOGO)
+    conn.executemany("INSERT INTO indicadores_catalogo VALUES (?, ?, ?, ?)", ind.CATALOGO)
+    sin_prom = conn.execute("SELECT COUNT(*) FROM indicadores WHERE roa IS NULL").fetchone()[0]
+    print(f"indicadores: {conn.execute('SELECT COUNT(*) FROM indicadores').fetchone()[0]:,} filas "
+          f"(entidad × mes) · filas sin ROA por falta del diciembre previo: {sin_prom:,}")
+    fecha = conn.execute("SELECT MAX(fecha) FROM indicadores").fetchone()[0]
+    print(f"\ncontrol contra el boletín de la SEPS, al {fecha} (agregado por segmento):")
+    print(f"  {'segmento':<24}{'entidades':>10}{'morosidad %':>13}{'cobertura %':>13}")
+    for seg, n, mor, cob in conn.execute("""
+            SELECT e.segmento, COUNT(*),
+                   100.0 * SUM(i.cartera_improductiva) / SUM(i.cartera_bruta),
+                   100.0 * SUM(i.provisiones_cartera) / SUM(i.cartera_improductiva)
+            FROM indicadores i JOIN entidades e USING (ruc)
+            WHERE i.fecha = ? GROUP BY e.segmento ORDER BY e.segmento""", (fecha,)):
+        print(f"  {seg:<24}{n:>10}{mor:>13.2f}{cob:>13.2f}")
+
+
 def control_jerarquia(conn: sqlite3.Connection) -> None:
     """El catálogo es jerárquico: sumar niveles distintos cuenta dos veces el mismo dinero."""
     fecha = conn.execute("SELECT MAX(fecha) FROM saldos").fetchone()[0]
@@ -125,4 +172,5 @@ if __name__ == "__main__":
         print("niveles del catálogo:", conn.execute(
             "SELECT nivel, COUNT(*) FROM cuentas GROUP BY nivel ORDER BY nivel").fetchall())
         control_jerarquia(conn)
+        crear_indicadores(conn)
     print(f"\nbase escrita en {DB_PATH} · {DB_PATH.stat().st_size / 1e6:.1f} MB")
