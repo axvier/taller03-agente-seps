@@ -1,0 +1,8 @@
+   .env
+   .venv/
+   __pycache__/
+   qdrant_storage/
+   *.pyc
+
+   taller-03-agentes.pdf
+   taller-03-v2-solver-multiagente.pdf
