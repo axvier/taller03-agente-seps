@@ -1,0 +1,456 @@
+{
+  "question": "Para las cooperativas del segmento 1 en agosto de 2026, calcula las estadísticas de la morosidad total y grafica las 10 con mayor morosidad.",
+  "answer": "En agosto de 2026, las 44 cooperativas del segmento 1 registraron una morosidad total con media de 8,15 %, mediana de 8,18 %, desviación estándar de 3,43 puntos, mínimo de 1,31 % y máximo de 16,06 % (Cooperativa Policía Nacional Ltda.).\n\nLas cifras provienen de la tabla `indicadores` (indicador `morosidad_total`, ficha SEPS 5 = cartera improductiva / cartera bruta) cruzada con `entidades` para filtrar el segmento 1 en el corte 2026-08-31.\n\n**Top 10 con mayor morosidad total:**\n\n| # | Cooperativa | Morosidad |\n|---|---|---|\n| 1 | Policía Nacional Ltda. | 16,06 % |\n| 2 | Cooprogreso Ltda. | 15,81 % |\n| 3 | Once de Junio Ltda. | 15,29 % |\n| 4 | Guaranda Ltda. | 12,00 % |\n| 5 | Santa Rosa Ltda. | 11,98 % |\n| 6 | De la Pequeña Empresa de Cotopaxi Ltda. | 11,95 % |\n| 7 | Chibuleo Ltda. | 11,66 % |\n| 8 | Calceta Ltda. | 11,31 % |\n| 9 | 9 de Octubre Ltda. | 10,98 % |\n| 10 | Oscus Ltda. | 10,22 % |\n\nEl gráfico de barras con las 10 cooperativas más morosas se guardó en: `data\\output\\graficos\\20261004T210836-bea67f-01.png`.",
+  "trace": [
+    {
+      "paso": 1,
+      "modelo": "zai-org/GLM-5.3-Flash",
+      "tokens_entrada": 1008,
+      "tokens_salida": 70,
+      "latencia_s": 0.709,
+      "action": {
+        "name": "describir_esquema",
+        "args": {}
+      },
+      "observation": {
+        "tablas": {
+          "cuentas": [
+            "codigo TEXT",
+            "descripcion TEXT",
+            "nivel INTEGER",
+            "codigo_padre TEXT"
+          ],
+          "entidades": [
+            "ruc TEXT",
+            "razon_social TEXT",
+            "segmento TEXT"
+          ],
+          "indicadores": [
+            "fecha TEXT",
+            "ruc TEXT",
+            "activo ",
+            "patrimonio ",
+            "cartera_bruta ",
+            "cartera_improductiva ",
+            "provisiones_cartera ",
+            "depositos_vista_y_plazo ",
+            "morosidad_total ",
+            "morosidad_consumo ",
+            "cobertura_cartera_problematica ",
+            "eficiencia_operativa ",
+            "intermediacion_financiera ",
+            "roa ",
+            "roe ",
+            "liquidez "
+          ],
+          "indicadores_catalogo": [
+            "indicador TEXT",
+            "ficha_seps INTEGER",
+            "formula TEXT",
+            "interpretacion TEXT"
+          ],
+          "saldos": [
+            "fecha TEXT",
+            "ruc TEXT",
+            "cuenta TEXT",
+            "saldo REAL"
+          ]
+        },
+        "fechas_de_corte": [
+          "2025-12-31",
+          "2026-01-31",
+          "2026-02-28",
+          "2026-03-31",
+          "2026-04-30",
+          "2026-05-31",
+          "2026-06-30",
+          "2026-07-31",
+          "2026-08-31"
+        ],
+        "reglas": [
+          "saldos.saldo está en USD; fecha es el último día del mes (AAAA-MM-DD).",
+          "El catálogo de cuentas es jerárquico: nivel 1 = 1 dígito (1 ACTIVO, 2 PASIVOS, 3 PATRIMONIO, 4 GASTOS, 5 INGRESOS, 6 CONTINGENTES, 7 ORDEN), nivel 2 = 2 dígitos, nivel 3 = 4, nivel 4 = 6. NUNCA sumes cuentas de niveles distintos: el saldo de una cuenta ya incluye a sus hijas. Filtra por el código exacto (cuenta = '14'), no con LIKE '14%'.",
+          "Las provisiones (cuenta 1499) se registran con signo negativo.",
+          "La tabla indicadores ya trae los 8 indicadores calculados por entidad y mes, en PORCENTAJE (8.29 significa 8,29 %). Úsala en lugar de recalcularlos.",
+          "Para agregados por segmento o del sistema, un indicador NO se promedia: se recalcula con sumas, por ejemplo 100*SUM(cartera_improductiva)/SUM(cartera_bruta).",
+          "entidades.segmento es el del último mes reportado.",
+          "El corte 2025-12-31 solo existe como insumo de los promedios; las preguntas del año usan 2026."
+        ],
+        "indicadores": [
+          {
+            "indicador": "morosidad_total",
+            "ficha_seps": 5,
+            "formula": "Cartera improductiva / cartera bruta. Cartera improductiva = no devenga + vencida de todas las líneas; cartera bruta = cuenta 14 − cuenta 1499.",
+            "interpretacion": "más bajo es mejor"
+          },
+          {
+            "indicador": "morosidad_consumo",
+            "ficha_seps": 16,
+            "formula": "Cartera improductiva de consumo / cartera bruta de consumo.",
+            "interpretacion": "más bajo es mejor"
+          },
+          {
+            "indicador": "cobertura_cartera_problematica",
+            "ficha_seps": 18,
+            "formula": "Provisiones de cartera (−1499) / cartera improductiva.",
+            "interpretacion": "más alto es mejor"
+          },
+          {
+            "indicador": "eficiencia_operativa",
+            "ficha_seps": 31,
+            "formula": "Gastos de operación (45) anualizados ×12/mes / activo promedio (con el diciembre previo, ÷ (mes+1)).",
+            "interpretacion": "más bajo es mejor"
+          },
+          {
+            "indicador": "intermediacion_financiera",
+            "ficha_seps": 36,
+            "formula": "Cartera bruta / (depósitos a la vista 2101 + depósitos a plazo 2103).",
+            "interpretacion": "mide cuánto de lo captado se presta"
+          },
+          {
+            "indicador": "roa",
+            "ficha_seps": 35,
+            "formula": "Resultado (5 − 4) anualizado ×12/mes / activo promedio. En diciembre: (3603 + 3604) / activo.",
+            "interpretacion": "más alto es mejor"
+          },
+          {
+            "indicador": "roe",
+            "ficha_seps": 34,
+            "formula": "Resultado (51…56 − 41…48) anualizado ×12/mes / patrimonio promedio. En diciembre: (3603 + 3604) / (3 − 3603 − 3604).",
+            "interpretacion": "más alto es mejor"
+          },
+          {
+            "indicador": "liquidez",
+            "ficha_seps": 52,
+            "formula": "Fondos disponibles (11) / depósitos a corto plazo (2101 + 2102 + 210305 + 210310).",
+            "interpretacion": "más alto es más líquido"
+          }
+        ]
+      },
+      "error": null
+    },
+    {
+      "paso": 2,
+      "modelo": "zai-org/GLM-5.3-Flash",
+      "tokens_entrada": 2151,
+      "tokens_salida": 364,
+      "latencia_s": 2.63,
+      "action": {
+        "name": "consultar_sql",
+        "args": {
+          "sql": "SELECT e.razon_social, i.morosidad_total FROM indicadores i JOIN entidades e ON e.ruc = i.ruc WHERE i.fecha = '2026-08-31' AND e.segmento = '1' AND i.morosidad_total IS NOT NULL"
+        }
+      },
+      "observation": {
+        "consulta_id": "q1",
+        "columnas": [
+          "razon_social",
+          "morosidad_total"
+        ],
+        "filas_total": 0,
+        "truncado_en_servidor": false,
+        "filas": []
+      },
+      "error": null
+    },
+    {
+      "paso": 2,
+      "modelo": "zai-org/GLM-5.3-Flash",
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "latencia_s": 0.0,
+      "action": {
+        "name": "consultar_sql",
+        "args": {
+          "sql": "SELECT e.razon_social, i.morosidad_total FROM indicadores i JOIN entidades e ON e.ruc = i.ruc WHERE i.fecha = '2026-08-31' AND e.segmento = '1' AND i.morosidad_total IS NOT NULL ORDER BY i.morosidad_total DESC LIMIT 10"
+        }
+      },
+      "observation": {
+        "consulta_id": "q2",
+        "columnas": [
+          "razon_social",
+          "morosidad_total"
+        ],
+        "filas_total": 0,
+        "truncado_en_servidor": false,
+        "filas": []
+      },
+      "error": null
+    },
+    {
+      "paso": 3,
+      "modelo": "zai-org/GLM-5.3-Flash",
+      "tokens_entrada": 2396,
+      "tokens_salida": 54,
+      "latencia_s": 0.536,
+      "action": {
+        "name": "consultar_sql",
+        "args": {
+          "sql": "SELECT DISTINCT segmento FROM entidades"
+        }
+      },
+      "observation": {
+        "consulta_id": "q3",
+        "columnas": [
+          "segmento"
+        ],
+        "filas_total": 4,
+        "truncado_en_servidor": false,
+        "filas": [
+          [
+            "SEGMENTO 1 MUTUALISTA"
+          ],
+          [
+            "SEGMENTO 2"
+          ],
+          [
+            "SEGMENTO 1"
+          ],
+          [
+            "SEGMENTO 3"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "paso": 4,
+      "modelo": "zai-org/GLM-5.3-Flash",
+      "tokens_entrada": 2488,
+      "tokens_salida": 257,
+      "latencia_s": 2.075,
+      "action": {
+        "name": "consultar_sql",
+        "args": {
+          "sql": "SELECT e.razon_social, i.morosidad_total FROM indicadores i JOIN entidades e ON e.ruc = i.ruc WHERE i.fecha = '2026-08-31' AND e.segmento = 'SEGMENTO 1' AND i.morosidad_total IS NOT NULL"
+        }
+      },
+      "observation": {
+        "consulta_id": "q4",
+        "columnas": [
+          "razon_social",
+          "morosidad_total"
+        ],
+        "filas_total": 44,
+        "truncado_en_servidor": false,
+        "filas": [
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO LA MERCED LIMITADA",
+            4.8255625848936825
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO ERCO LIMITADA",
+            6.847471437836234
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO ALFONSO JARAMILLO LEON CAJA",
+            7.684073998385079
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO JUVENTUD ECUATORIANA PROGRESISTA LIMITADA",
+            6.436486157714909
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO JARDIN AZUAYO LIMITADA",
+            5.703403985748839
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO GUARANDA LTDA",
+            12.002903229915013
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO SAN JOSE LIMITADA",
+            9.228440012625583
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO DE LA PEQUEÑA EMPRESA BIBLIAN LIMITADA",
+            9.896462845334522
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO PABLO MUÑOZ VEGA LIMITADA",
+            9.830063624044609
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO TULCAN LIMITADA",
+            6.5367443612487355
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO 9 DE OCTUBRE LTDA",
+            10.981673233963628
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO DE LA PEQUEÑA EMPRESA DE COTOPAXI LIMITADA",
+            11.951375033678785
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO VIRGEN DEL CISNE",
+            5.00388473682821
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO RIOBAMBA LTDA",
+            4.321549367684757
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO LUCHA CAMPESINA",
+            2.99500552143127
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO FERNANDO DAQUILEMA LIMITADA",
+            6.016962360391089
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO ONCE DE JUNIO LTDA",
+            15.293325476787356
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO SANTA ROSA LIMITADA",
+            11.97845193865572
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO ATUNTAQUI LIMITADA",
+            7.438259267669358
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO PILAHUIN TIO LIMITADA",
+            2.5757271903771324
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "paso": 4,
+      "modelo": "zai-org/GLM-5.3-Flash",
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "latencia_s": 0.0,
+      "action": {
+        "name": "consultar_sql",
+        "args": {
+          "sql": "SELECT e.razon_social, i.morosidad_total FROM indicadores i JOIN entidades e ON e.ruc = i.ruc WHERE i.fecha = '2026-08-31' AND e.segmento = 'SEGMENTO 1' AND i.morosidad_total IS NOT NULL ORDER BY i.morosidad_total DESC LIMIT 10"
+        }
+      },
+      "observation": {
+        "consulta_id": "q5",
+        "columnas": [
+          "razon_social",
+          "morosidad_total"
+        ],
+        "filas_total": 10,
+        "truncado_en_servidor": false,
+        "filas": [
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO POLICIA NACIONAL LIMITADA",
+            16.055421235467282
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO COOPROGRESO LIMITADA",
+            15.807419742196004
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO ONCE DE JUNIO LTDA",
+            15.293325476787356
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO GUARANDA LTDA",
+            12.002903229915013
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO SANTA ROSA LIMITADA",
+            11.97845193865572
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO DE LA PEQUEÑA EMPRESA DE COTOPAXI LIMITADA",
+            11.951375033678785
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO CHIBULEO LIMITADA",
+            11.658769706830352
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO CALCETA LTDA",
+            11.307799493270966
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO 9 DE OCTUBRE LTDA",
+            10.981673233963628
+          ],
+          [
+            "COOPERATIVA DE AHORRO Y CREDITO OSCUS LIMITADA",
+            10.216025224741156
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "paso": 5,
+      "modelo": "zai-org/GLM-5.3-Flash",
+      "tokens_entrada": 3806,
+      "tokens_salida": 137,
+      "latencia_s": 1.019,
+      "action": {
+        "name": "calcular_estadisticas",
+        "args": {
+          "consulta_id": "q4",
+          "columna": "morosidad_total"
+        }
+      },
+      "observation": {
+        "consulta_id": "q4",
+        "columna": "morosidad_total",
+        "n": 44,
+        "media": 8.1545,
+        "mediana": 8.1798,
+        "desviacion_estandar": 3.4274,
+        "minimo": 1.3068,
+        "maximo": 16.0554
+      },
+      "error": null
+    },
+    {
+      "paso": 5,
+      "modelo": "zai-org/GLM-5.3-Flash",
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "latencia_s": 0.0,
+      "action": {
+        "name": "generar_grafico",
+        "args": {
+          "consulta_id": "q5",
+          "tipo": "barras",
+          "titulo": "Segmento 1: 10 cooperativas con mayor morosidad total (agosto 2026)",
+          "x": "razon_social",
+          "y": "morosidad_total"
+        }
+      },
+      "observation": {
+        "grafico": "data\\output\\graficos\\20261004T210836-bea67f-01.png",
+        "puntos": 10
+      },
+      "error": null
+    },
+    {
+      "paso": 6,
+      "modelo": "zai-org/GLM-5.3-Flash",
+      "tokens_entrada": 4021,
+      "tokens_salida": 486,
+      "latencia_s": 3.309,
+      "action": null,
+      "observation": null,
+      "error": null
+    }
+  ],
+  "status": "completed",
+  "model": "zai-org/GLM-5.3-Flash",
+  "usage": {
+    "tokens_entrada": 15870,
+    "tokens_salida": 1368
+  },
+  "run_id": "20261004T210836-bea67f",
+  "latencia_total_s": 10.923,
+  "totales": {
+    "pasos": 9,
+    "errores": 0
+  }
+}
