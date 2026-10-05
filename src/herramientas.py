@@ -140,11 +140,15 @@ class Sesion:
             for (t,) in conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"):
                 tablas[t] = [f"{c[1]} {c[2]}" for c in conn.execute(f'PRAGMA table_info("{t}")')]
             fechas = [r[0] for r in conn.execute("SELECT DISTINCT fecha FROM saldos ORDER BY fecha")]
+            segmentos = {seg: n for seg, n in conn.execute(
+                "SELECT segmento, COUNT(*) FROM entidades GROUP BY segmento ORDER BY segmento")}
             indicadores = [dict(zip(("indicador", "ficha_seps", "formula", "interpretacion"), r))
                            for r in conn.execute("SELECT * FROM indicadores_catalogo")]
         return {
             "tablas": tablas,
             "fechas_de_corte": fechas,
+            "valores_de_entidades_segmento": segmentos,      # texto exacto: 'SEGMENTO 2', no '2'
+
             "reglas": [
                 "saldos.saldo está en USD; fecha es el último día del mes (AAAA-MM-DD).",
                 "El catálogo de cuentas es jerárquico: nivel 1 = 1 dígito (1 ACTIVO, 2 PASIVOS, 3 PATRIMONIO, "
@@ -214,15 +218,24 @@ class Sesion:
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
         datos = df[[x, y]].head(50)
-        fig, ax = plt.subplots(figsize=(9, 4.5))
-        (ax.bar if tipo == "barras" else ax.plot)(datos[x].astype(str), pd.to_numeric(datos[y], errors="coerce"))
-        ax.set_title(titulo[:120]); ax.set_xlabel(x); ax.set_ylabel(y)
-        ax.tick_params(axis="x", rotation=60, labelsize=7)
-        fig.tight_layout()
+        etiquetas = [str(v)[:40] for v in datos[x]]          # razones sociales largas: se recortan
+        valores = pd.to_numeric(datos[y], errors="coerce")
+        if tipo == "barras":                                 # barras horizontales: etiquetas legibles
+            fig, ax = plt.subplots(figsize=(9, max(3.5, 0.4 * len(datos) + 1.5)))
+            ax.barh(etiquetas, valores)
+            ax.invert_yaxis()
+            ax.set_xlabel(y); ax.set_ylabel(x)
+            ax.tick_params(axis="y", labelsize=8)
+        else:
+            fig, ax = plt.subplots(figsize=(9, 4.5))
+            ax.plot(etiquetas, valores, marker="o")
+            ax.set_xlabel(x); ax.set_ylabel(y)
+            ax.tick_params(axis="x", rotation=45, labelsize=8)
+        ax.set_title(titulo[:120])
         self.dir_graficos.mkdir(parents=True, exist_ok=True)
         n = len(list(self.dir_graficos.glob(f"{self.run_id}-*.png"))) + 1
         ruta = self.dir_graficos / f"{self.run_id}-{n:02d}.png"      # [C3] la ruta la fija el servidor
-        fig.savefig(ruta, dpi=110); plt.close(fig)
+        fig.savefig(ruta, dpi=110, bbox_inches="tight"); plt.close(fig)
         return {"grafico": str(ruta.relative_to(ROOT)), "puntos": len(datos)}
 
     # -- despacho ----------------------------------------------------------------------------

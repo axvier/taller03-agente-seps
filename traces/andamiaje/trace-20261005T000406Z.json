@@ -1,0 +1,6 @@
+{
+  "question": "¿En qué mes de 2026 alcanzó el segmento 3, en su conjunto, su mayor morosidad total, y cuánto fue?",
+  "answer": "No puedo responder a esta pregunta con la información disponible: no tengo acceso a ningún dataset con la morosidad del segmento 3 para 2026, y no debo inventar datos. Para poder analizarlo, necesito que proporciones la fuente de datos (por ejemplo, un archivo CSV/Excel con columnas como mes, segmento y monto de morosidad) o que indiques la herramienta/consulta mediante la cual puedo leerlos. Una vez con los datos, calcularé el total mensual del segmento 3, identificaré el mes con mayor morosidad y, si lo deseas, generaré un gráfico de la evolución durante 2026.",
+  "trace": [],
+  "status": "completed"
+}
