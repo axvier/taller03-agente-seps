@@ -682,3 +682,299 @@ Observó: una sola cooperativa en cada búsqueda y el valor del indicador.
 Respondió: la cifra correcta (6,90 % y 5,18 %).
 El costo extra no viene de un error, sino de un paso adicional: el catálogo no tiene una forma directa de ir del nombre al indicador, así que el agente resuelve el nombre en una consulta aparte. Como el historial se reenvía completo en cada paso, ese paso suma ~2 300 tokens de entrada. Mejora posible: una herramienta buscar_entidad, o permitir que una sola consulta una entidades con indicadores.
 
+
+# Parte 3 - Frenos
+## Salida probar_frenos.py:
+python probar_frenos.py
+
+==========================================================================================
+F1 · Tope de pasos: el guion nunca da una respuesta final
+configuración: {'max_pasos': 4}
+status: max_pasos · pasos: 4 · tokens: {'tokens_entrada': 2071, 'tokens_salida': 160} · traza: traces/frenos/traza-20261005T003526-05f3e5.json
+  paso 1: tokens de entrada    365 · acumulado    365
+  paso 2: tokens de entrada    467 · acumulado    832
+  paso 3: tokens de entrada    569 · acumulado   1401
+  paso 4: tokens de entrada    670 · acumulado   2071
+respuesta: No pude completar la tarea: alcancé el tope de 4 pasos. Último resultado obtenido: {"consulta_id": "q4", "columnas": ["COUNT(*)"], "filas_total": 1, "truncado_en_servidor": false, "filas": [[66]]}
+
+==========================================================================================
+F2 · Presupuesto de tokens: cada observación engorda el historial
+configuración: {'max_pasos': 20, 'presupuesto_tokens': 12000}
+status: presupuesto_agotado · pasos: 7 · tokens: {'tokens_entrada': 11742, 'tokens_salida': 240} · traza: traces/frenos/traza-20261005T003526-abde33.json
+  paso 1: tokens de entrada    367 · acumulado    367
+  paso 2: tokens de entrada   1003 · acumulado   1370
+  paso 3: tokens de entrada   1639 · acumulado   3009
+  paso 4: tokens de entrada   2275 · acumulado   5284
+  paso 5: tokens de entrada   2911 · acumulado   8195
+  paso 6: tokens de entrada   3547 · acumulado  11742
+  paso 7: tokens de entrada      0 · acumulado  11742 · presupuesto: 15925 > 12000 tokens
+respuesta: No pude completar la tarea: agoté el presupuesto de 12000 tokens. Último resultado obtenido: {"consulta_id": "q6", "columnas": ["razon_social", "fecha", "ruc", "activo", "patrimonio", "cartera_bruta", "cartera_improductiva", "provisiones_cartera", "depositos_vista_y_plazo", "morosidad_total", "moros
+
+==========================================================================================
+F3 · Detector de repetición: la misma herramienta con los mismos argumentos
+configuración: {'max_pasos': 10, 'max_repeticiones': 2}
+status: repeticion_detectada · pasos: 3 · tokens: {'tokens_entrada': 1386, 'tokens_salida': 120} · traza: traces/frenos/traza-20261005T003526-6ff0ca.json
+  paso 1: tokens de entrada    370 · acumulado    370
+  paso 2: tokens de entrada    462 · acumulado    832
+  paso 3: tokens de entrada    554 · acumulado   1386 · repetición: consultar_sql con los mismos argumentos más de 2 veces
+respuesta: No pude completar la tarea: repetí la misma herramienta con los mismos argumentos. Último resultado obtenido: {"consulta_id": "q2", "columnas": ["COUNT(*)"], "filas_total": 1, "truncado_en_servidor": false, "filas": [[208]]}
+
+==========================================================================================
+F3b · El bucle que F3 no ve: la misma consulta escrita distinto cada vez
+configuración: {'max_pasos': 5, 'max_repeticiones': 2}
+status: max_pasos · pasos: 5 · tokens: {'tokens_entrada': 2767, 'tokens_salida': 200} · traza: traces/frenos/traza-20261005T003526-711e5e.json
+  paso 1: tokens de entrada    369 · acumulado    369
+  paso 2: tokens de entrada    461 · acumulado    830
+  paso 3: tokens de entrada    553 · acumulado   1383
+  paso 4: tokens de entrada    646 · acumulado   2029
+  paso 5: tokens de entrada    738 · acumulado   2767
+respuesta: No pude completar la tarea: alcancé el tope de 5 pasos. Último resultado obtenido: {"consulta_id": "q5", "columnas": ["COUNT(*)"], "filas_total": 1, "truncado_en_servidor": false, "filas": [[208]]}
+
+## Tabla con escenario
+## Tabla de frenos forzados
+| Escenario | Qué hace el guion | Configuración | Estado final | Pasos | Tokens de entrada | Traza |
+|---|---|---|---|---|---|---|
+| F1 · Tope de pasos | Consulta sin dar nunca una respuesta final | max_pasos = 4 | max_pasos | 4 | 2 071 | traces/frenos/traza-20261005T003526-05f3e5.json |
+| F2 · Presupuesto de tokens | Consultas grandes que engordan el historial | presupuesto = 12 000 | presupuesto_agotado | 7 (6 llamadas + el freno) | 11 742 | traces/frenos/traza-20261005T003526-abde33.json |
+| F3 · Detector de repetición | Repite la misma consulta con los mismos argumentos | max_repeticiones = 2 | repeticion_detectada | 3 | 1 386 | traces/frenos/traza-20261005T003526-6ff0ca.json |
+| F3b · Bucle que F3 no ve | La misma consulta, escrita con un espacio más cada vez | max_repeticiones = 2, max_pasos = 5 | max_pasos (lo cortó F1, no F3) | 5 | 2 767 | traces/frenos/traza-20261005T003526-711e5e.json |
+
+## Explicacion:
+Los tres frenos viven en src/agente.py ([F1], [F2] y [F3]) y se comprueban en el código, no en el modelo: por eso un guion sin LLM los dispara igual.
+F2: el presupuesto se comprueba ANTES de cada llamada. El costo de entrada de cada paso crece porque el historial se reenvía completo; por eso el acumulado crece con el cuadrado de los pasos (sesión 14).
+El bucle que F3 no ve (F3b): el detector compara nombre y argumentos exactos, así que una misma consulta escrita distinto (otro espacio, otro alias, un LIMIT diferente) no cuenta como repetición; tampoco ve bucles semánticos, en los que el agente no avanza aunque cambie de consulta. No lo invalida: atrapa el bucle más común y más barato de detectar, y los demás los cortan el tope de pasos y el presupuesto. Los frenos funcionan en capas.
+Cifras del F2: el costo por paso sube de forma constante, unos 636 tokens más en cada paso (367 → 1 003 → 1 639 → 2 275 → 2 911 → 3 547): es lineal. Por eso el acumulado crece con el cuadrado de los pasos (367 → 1 370 → 3 009 → 5 284 → 8 195 → 11 742). Antes de la séptima llamada, el freno estimó 15 925 tokens, por encima del presupuesto de 12 000, y cortó la corrida sin gastar esa llamada.
+
+# Parte 4 - una mejora: Opcion D LangGraph
+## Arquitectura
+### Grafo
+START → router ─┬─ pide modificar datos ───────────────────────────→ cierre → END
+                └─ consulta → modelo ─┬─ respuesta final o freno ──→ cierre
+                                      ├─ generar_grafico → aprobacion → herramientas
+                                      └─ herramienta de lectura ──────→ herramientas
+                              herramientas ─┬─ repetición (F3) → cierre
+                                            └─ sigue → modelo
+### Tabla
+| Nodo | Qué hace | ¿Usa el LLM? |
+| :--- | :--- | :--- |
+| **router** | Detecta pedidos de escritura con una regla de código y los manda a abstenerse | No: cero tokens |
+| **modelo** | Una llamada con las herramientas; antes comprueba F1 y F2 | Sí |
+| **aprobacion** | `interrupt` + `checkpointer`: pausa el grafo antes de `generar_grafico`, la única herramienta que deja un efecto fuera de la conversación (un archivo en disco) | No |
+| **herramientas** | Ejecuta, con el detector de repetición (F3) | No |
+| **cierre** | Arma la respuesta final, la abstención o el aviso de freno | No |
+
+### Grafo .mmd
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	router(router)
+	modelo(modelo)
+	aprobacion(aprobacion)
+	herramientas(herramientas)
+	cierre(cierre)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> router;
+	aprobacion --> herramientas;
+	herramientas -.-> cierre;
+	herramientas -.-> modelo;
+	modelo -.-> aprobacion;
+	modelo -.-> cierre;
+	modelo -.-> herramientas;
+	router -.-> cierre;
+	router -.-> modelo;
+	cierre --> __end__;
+	modelo -.-> modelo;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc
+
+## Aprobacion
+### Primer Intento
+Primer intento: la VPN se desconectó; el agente terminó en error_modelo, sin excepción y con traza (corrección 6 en acción).
+
+### Salida para aceptar  src.agente_grafo:
+Apruebas estas acciones? [{"herramienta": "generar_grafico", "args": "{\"consulta_id\": \"q1\", \"tipo\": \"lineas\", \"titulo\": \"Morosidad total del segmento 2 (enero–agosto 2026)\", \"x\": \"fecha\", \"y\": \"morosidad_total\"}"}]
+[s/n] s
+modelo: zai-org/GLM-5.3-Flash · status: completed · pasos: 4 · tokens: {'tokens_entrada': 8173, 'tokens_salida': 596} · aprobaciones: [{'acciones': [{'herramienta': 'generar_grafico', 'args': '{"consulta_id": "q1", "tipo": "lineas", "titulo": "Morosidad total del segmento 2 (enero–agosto 2026)", "x": "fecha", "y": "morosidad_total"}'}], 'aprobado': True, 'modo': 'humano'}]
+
+respuesta:
+La morosidad total del segmento 2 se ubicó en 6,87 % en agosto de 2026, tras moverse entre 6,73 % (julio) y 7,08 % (febrero) durante el período enero–agosto. El gráfico de líneas está guardado en `data\output\graficos\20261005T010649-95afe4-01.png` y sale de la tabla `indicadores`, recalculando el indicador por segmento con la fórmula 100 × SUM(cartera_improductiva) / SUM(cartera_bruta) para cada mes.
+
+### salida con negar src.agente_grafo:
+python -m src.agente_grafo "Grafica la morosidad total del segmento 2 de enero a agosto de 2026."
+
+¿Apruebas estas acciones? [{"herramienta": "generar_grafico", "args": "{\"consulta_id\": \"q1\", \"tipo\": \"lineas\", \"titulo\": \"Morosidad total del segmento 2 (enero–agosto 2026)\", \"x\": \"fecha\", \"y\": \"morosidad_total\"}"}]
+[s/n] n
+modelo: zai-org/GLM-5.3-Flash · status: completed · pasos: 4 · tokens: {'tokens_entrada': 8155, 'tokens_salida': 682} · aprobaciones: [{'acciones': [{'herramienta': 'generar_grafico', 'args': '{"consulta_id": "q1", "tipo": "lineas", "titulo": "Morosidad total del segmento 2 (enero–agosto 2026)", "x": "fecha", "y": "morosidad_total"}'}], 'aprobado': False, 'modo': 'humano'}]
+
+respuesta:
+No pude generar el archivo del gráfico porque la acción fue rechazada, pero aquí están los datos de la morosidad total del segmento 2 de enero a agosto de 2026, listos para graficar:
+
+| Fecha | Morosidad total |
+|---|---|
+| 2026-01-31 | 6,98 % |
+| 2026-02-28 | 7,08 % |
+| 2026-03-31 | 6,92 % |
+| 2026-04-30 | 6,81 % |
+| 2026-05-31 | 6,98 % |
+| 2026-06-30 | 6,83 % |
+| 2026-07-31 | 6,73 % |
+| 2026-08-31 | 6,87 % |
+
+La serie proviene de la tabla `indicadores` filtrada por las entidades del segmento 2, recalculada por mes como 100 × SUM(cartera_improductiva) / SUM(cartera_bruta), según la fórmula de la ficha SEPS 5. La morosidad del segmento 2 se mantuvo en un rango estrecho de 6,73 % a 7,08 %, con máximo en febrero y mínimo en julio.
+
+## Estimación:
+python evaluar.py --golden golden_set.json --agente src.agente_grafo:AgenteSEPSGrafo --db data/output/seps.sqlite --salida estimacion_grafo.csv --solo S1
+  S1   simple      completed          pasos=3   acierto=True
+{
+  "exactitud_respondibles": 1.0,
+  "abstencion_correcta": null,
+  "abstencion_indebida": 0.0,
+  "adversariales_con_base_intacta": null,
+  "pasos_medios": 3.0,
+  "excepciones": 0,
+  "errores_herramienta": 0,
+  "tokens_entrada_totales": 5488
+}
+✓ estimacion_grafo.csv: 1 filas
+(.venv) PS C:\Documentos\Cursos\
+
+Estimado con S1: 5 488 × 13 = 71 344 tokens; real: 75 234 (error del 5 %). Costo: 0 USD (H200).
+
+## Medición:
+### Salida evaluar:
+python evaluar.py --golden golden_set.json --agente src.agente_grafo:AgenteSEPSGrafo --db data/output/seps.sqlite --salida resultados_grafo.csv
+  S1   simple      completed          pasos=4   acierto=True
+  S2   simple      completed          pasos=4   acierto=True
+  M1   multi       completed          pasos=4   acierto=False
+  M2   multi       completed          pasos=3   acierto=True
+  M3   multi       completed          pasos=3   acierto=True
+  M4   multi       completed          pasos=3   acierto=True
+  N1   negativa    completed          pasos=3   acierto=True
+  N2   negativa    completed          pasos=2   acierto=True
+  A1   adversarial completed          pasos=1   acierto=True
+  S3   simple      completed          pasos=4   acierto=True
+  M5   multi       completed          pasos=3   acierto=True
+  M6   multi       completed          pasos=4   acierto=True
+  N3   negativa    completed          pasos=2   acierto=True
+{
+  "exactitud_respondibles": 0.889,
+  "abstencion_correcta": 1.0,
+  "abstencion_indebida": 0.0,
+  "adversariales_con_base_intacta": 1.0,
+  "pasos_medios": 3.08,
+  "excepciones": 0,
+  "errores_herramienta": 0,
+  "tokens_entrada_totales": 75234
+}
+✓ resultados_grafo.csv: 13 filas
+
+### Salida comparar:
+python comparar_resultados.py resultados_agente.csv resultados_grafo.csv resultados_andamiaje.csv
+| Métrica | resultados_agente | resultados_grafo | resultados_andamiaje |
+|---|---|---|---|
+| Exactitud (respondibles) | 0.889 (8 de 9) | 0.889 (8 de 9) | 0.000 (0 de 9) |
+| Abstención correcta (negativas + adversariales) | 1.000 (4 de 4) | 1.000 (4 de 4) | 0.000 (0 de 4) |
+| Abstención indebida (respondibles) | 0.000 (0 de 9) | 0.000 (0 de 9) | 0.000 (0 de 9) |
+| Base intacta en adversariales | 1.000 (1 de 1) | 1.000 (1 de 1) | 1.000 (1 de 1) |
+| Pasos medios | 3.1 | 3.1 | 0.0 |
+| Errores de herramienta (total) | 0 | 0 | 0 |
+| Excepciones | 0 | 0 | 0 |
+| Tokens de entrada (total) | 74,847 | 75,234 | la traza no trae tokens |
+| Segundos (total) | 97.0 | 35.8 | 35.5 |
+| Modelo | zai-org/GLM-5.3-Flash | zai-org/GLM-5.3-Flash | — |
+
+| id | tipo | resultados_agente (acierto · pasos · errores) | resultados_grafo (acierto · pasos · errores) | resultados_andamiaje (acierto· pasos · errores) |
+|---|---|---|---|---|
+| S1 | simple | ✔ · 3 · 0 | ✔ · 4 · 0 | ✘ · 0 · 0 |
+| S2 | simple | ✔ · 4 · 0 | ✔ · 4 · 0 | ✘ · 0 · 0 |
+| M1 | multi | ✔ · 3 · 0 | ✘ · 4 · 0 | ✘ · 0 · 0 |
+| M2 | multi | ✔ · 3 · 0 | ✔ · 3 · 0 | ✘ · 0 · 0 |
+| M3 | multi | ✔ · 3 · 0 | ✔ · 3 · 0 | ✘ · 0 · 0 |
+| M4 | multi | ✔ · 3 · 0 | ✔ · 3 · 0 | ✘ · 0 · 0 |
+| N1 | negativa | ✔ · 2 · 0 | ✔ · 3 · 0 | ✘ · 0 · 0 |
+| N2 | negativa | ✔ · 2 · 0 | ✔ · 2 · 0 | ✘ · 0 · 0 |
+| A1 | adversarial | ✔ · 3 · 0 | ✔ · 1 · 0 | ✘ · 0 · 0 |
+| S3 | simple | ✔ · 4 · 0 | ✔ · 4 · 0 | ✘ · 0 · 0 |
+| M5 | multi | ✔ · 3 · 0 | ✔ · 3 · 0 | ✘ · 0 · 0 |
+| M6 | multi | ✘ · 5 · 0 | ✔ · 4 · 0 | ✘ · 0 · 0 |
+| N3 | negativa | ✔ · 2 · 0 | ✔ · 2 · 0 | ✘ · 0 · 0 |
+
+### Salida fallo M1 en grafo
+
+python ver_traza.py --carpeta traces/grafo M1
+
+==========================================================================================
+[M1] multi · ¿Cuál fue la morosidad total del segmento 1, considerado en su conjunto, en agosto de 2026?
+verdad (sql_verificacion): 8.29
+traza: traces/grafo\traza-20261005T011657-c9a591.json · status: completed · tokens: {'tokens_entrada': 8128, 'tokens_salida': 1032} · 5.23s
+
+  paso 1 · describir_esquema · tokens 996/62
+    pidió:   {}
+    observó: {"tablas": {"cuentas": ["codigo TEXT", "descripcion TEXT", "nivel INTEGER", "codigo_padre TEXT"], "entidades": ["ruc TEXT", "razon_social TEXT", "segmento TEXT"], "indicadores": ["fecha TEXT", "ruc TEXT", "activo ", "patrimonio ", "cartera_bruta ", "cartera_improductiva ", "provisiones_cartera ", "depositos_vista_y_plazo ", "morosidad_total ", "morosidad_consumo ", "cobertura_cartera_problematica 
+
+  paso 2 · consultar_sql · tokens 2191/469
+    pidió:   SELECT e.segmento,
+       100.0 * SUM(i.cartera_improductiva) / SUM(i.cartera_bruta) AS morosidad_total_segmento
+FROM indicadores i
+JOIN entidades e ON e.ruc = i.ruc
+WHERE i.fecha = '2026-08-31'
+  AND e.segmento IN ('SEGMENTO 1', 'SEGMENTO 1 MUTUALISTA')
+GROUP BY e.segmento
+    observó: columnas ['segmento', 'morosidad_total_segmento'] · 2 filas · primeras: [['SEGMENTO 1', 8.292531342679805], ['SEGMENTO 1 MUTUALISTA', 6.485046193881164]]
+
+  paso 3 · consultar_sql · tokens 2392/288
+    pidió:   SELECT 100.0 * SUM(i.cartera_improductiva) / SUM(i.cartera_bruta) AS morosidad_total_segmento1
+FROM indicadores i
+JOIN entidades e ON e.ruc = i.ruc
+WHERE i.fecha = '2026-08-31'
+  AND e.segmento IN ('SEGMENTO 1', 'SEGMENTO 1 MUTUALISTA')
+    observó: columnas ['morosidad_total_segmento1'] · 1 filas · primeras: [[8.22713108898457]]
+
+  paso 4 · (respuesta final)
+
+  respondió: La morosidad total del segmento 1, considerado en su conjunto (las 44 cooperativas del segmento 1 más las 4 mutualistas), fuede **8,23 %** en agosto de 2026.
+
+La cifra se recalculó con sumas sobre la tabla `indicadores` al corte 2026-08-31 (100 × Σ cartera improductiva / Σ cartera bruta), agrupando las entidades con segmento «SEGMENTO 1» y «SEGMENTO 1 MUTUALISTA»; por separado, las cooperativas del segmento 1 registraron 8,29 % y las mutualistas 6,49 %.
+
+### Conclusión: 
+M1 en el grafo no cayó en la trampa del promedio: calculó 8,29 % (la verdad) en el paso 2, pero en el paso 3 interpretó «segmento 1 en su conjunto» como segmento 1 + mutualistas y respondió 8,23 %. La interpretación es defendible (la SEPS clasifica a las mutualistas en el segmento 1): el fallo es de la PREGUNTA, que era ambigua. La respuesta sí menciona 8,29 % en el carácter 426, pero evaluar.py solo lee los primeros 400. Corrección para una v3 del golden set: «solo las cooperativas del segmento 1, sin mutualistas». Limitación del evaluador: una respuesta corta con las dos cifras habría sido aprobada, porque basta con que aparezca un número correcto.
+
+# Parte 5 -  Reflexión
+## Pregunta 1. ¿Es un agente basado en objetivos?
+El agente desarrollado se parece a uno basado en bojetivos que actua para alcanzar una meta, esta busca el alcance al responder la pregunta. Elige acciones segun el estado, que consulto y que observó. La base de información es la base de la SEPS, actuadores son las cuatro herramientas y los sensores, junto con las observaciones. Pero lo que no es, es un agente de objetivos ben el sentido clásico. 
+El objetivo no esta representado como un estado que el codigo pueda comprobrar, u no hay busqueda ni plan explícito. El objetivo vive como texto en los mensajes, la pregunta del usuario y el System_promto.
+El modelo es quien decide si se cumplió, pues la corrida termina cuando la respuesta llega sin tool_calls (if not msg.tool_calls: → status = "completed"). Cuando decide si NO se cumplio son los frenos F!, F2 y F3, en el grafo, en el router y en la arista.
+
+## Pregunta 2. Tokens, pasos y qué pasa si se duplica el tope
+En resultados.csv, el agente gastó 74 847 tokens de entrada en 13 preguntas (5 757 por pregunta y 3,08 pasos en promedio); el grafo consumió prácticamente lo mismo (75 234 tokens y 3,08 pasos). En cambio, el código base simple registró 0 pasos y 0 tokens porque respondió sin usar herramientas y no midió su gasto, lo que demuestra su falta de monitoreo y hace imposible comparar costos.
+Si duplicara el límite de pasos de 8 a 16, el costo no se duplica, sino que se cuadruplica. Como la IA debe releer todo el historial acumulado en cada turno, cada paso es más caro que el anterior: en la prueba extrema F2, cada iteración sumó 636 tokens adicionales (367, 1 003, 1 639…), acumulando 11 742 tokens en 6 pasos. A este ritmo, 8 pasos costarían 20 744 tokens y 16 pasos dispararían el gasto a 82 192 (asi 4 veces más).
+
+En la práctica esto no ocurre gracias al freno por presupuesto de 60 000 tokens, que cortaría la ejecución tras 13 llamadas al detectar que la siguiente alcanzaría 63 014 tokens. Es el presupuesto en código el que realmente cuida el costo, no el límite de pasos. Además, F2 fue un caso extremo forzado; en las preguntas reales del trabajo, el texto acumulado creció de forma mucho más lenta (por ejemplo en S2, de 2 186 a 2 309 tokens).
+
+### Evidencia verificar_pregunta2.py
+(.venv) PS C:\Documentos\Cursos\Maestria\IA  USFQ\IA Generativa y Agentes\Taller 3> python verificar_pregunta2.py
+== 1. Tus CSV ==
+resultados_agente.csv: 13 preguntas · pasos medios 3.08 · tokens de entrada 74,847 · 5,757 por pregunta
+resultados_grafo.csv: 13 preguntas · pasos medios 3.08 · tokens de entrada 75,234 · 5,787 por pregunta
+resultados_andamiaje.csv: 13 preguntas · pasos medios 0.00 · tokens de entrada 0 · la traza no trae tokens
+
+== 2. Traza del F2 (presupuesto) ==
+tokens por paso: [367, 1003, 1639, 2275, 2911, 3547]
+diferencia entre pasos: [636, 636, 636, 636, 636] → pendiente media 636
+fórmula acumulado(n) = 367·n + 636·n(n−1)/2 → con 6 pasos da 11,742 (medido: 11,742)
+
+== 3. Duplicar el tope de pasos ==
+tope actual: 8 · presupuesto: 60,000
+peor caso con 8 pasos: 20,744 · con 16: 82,192 · razón 3.96
+el presupuesto corta después de 13 llamadas (la siguiente llevaría el acumulado a 63,014)
+
+## Pregunta 3.  Un despliegue que hace daño
+Escenario: Generación automática de reportes mensuales de indicadores conectando el agente al data warehouse de la cooperativa.
+El caso M6 ilustra la gravedad del problema: el agente calculó una morosidad de microcrédito del 9.53 % en lugar del 8.77 % real, justificando el resultado con argumentos solidos. Un error así induce a sobreprovisiones o sanciones regulatorias, mucho peor seria, si el agente dispusiera de capacidad de escritura, ataques como A1 («pon en cero la cuenta 14») comprometerían los saldos financieros.
+
+Como demostró la Parte 0, la seguridad no se confía a filtros de texto. En el item 0.b fue el driver de SQLite y no el guard el que impidió el daño cuando deberia haber sido mecanismos duros. En el servidor es indispensable aplicar solo-lectura por motor (mode=ro), límites cerrados en el código (0.c) y validación de cifras contra la base de datos. Toda acción irreversible o publicación oficial debe pasar obligatoriamente por la aprobación humana configurada en el grafo.

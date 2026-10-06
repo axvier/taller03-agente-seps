@@ -1,0 +1,89 @@
+{
+  "question": "[F3] Detector de repetición: la misma herramienta con los mismos argumentos",
+  "answer": "No pude completar la tarea: repetí la misma herramienta con los mismos argumentos. Último resultado obtenido: {\"consulta_id\": \"q2\", \"columnas\": [\"COUNT(*)\"], \"filas_total\": 1, \"truncado_en_servidor\": false, \"filas\": [[208]]}",
+  "trace": [
+    {
+      "paso": 1,
+      "modelo": "guion-sin-llm",
+      "tokens_entrada": 370,
+      "tokens_salida": 40,
+      "latencia_s": 0.0,
+      "action": {
+        "name": "consultar_sql",
+        "args": {
+          "sql": "SELECT COUNT(*) FROM entidades"
+        }
+      },
+      "observation": {
+        "consulta_id": "q1",
+        "columnas": [
+          "COUNT(*)"
+        ],
+        "filas_total": 1,
+        "truncado_en_servidor": false,
+        "filas": [
+          [
+            208
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "paso": 2,
+      "modelo": "guion-sin-llm",
+      "tokens_entrada": 462,
+      "tokens_salida": 40,
+      "latencia_s": 0.0,
+      "action": {
+        "name": "consultar_sql",
+        "args": {
+          "sql": "SELECT COUNT(*) FROM entidades"
+        }
+      },
+      "observation": {
+        "consulta_id": "q2",
+        "columnas": [
+          "COUNT(*)"
+        ],
+        "filas_total": 1,
+        "truncado_en_servidor": false,
+        "filas": [
+          [
+            208
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "paso": 3,
+      "modelo": "guion-sin-llm",
+      "tokens_entrada": 554,
+      "tokens_salida": 40,
+      "latencia_s": 0.0,
+      "action": {
+        "name": "consultar_sql",
+        "args": {
+          "sql": "SELECT COUNT(*) FROM entidades"
+        }
+      },
+      "observation": {
+        "error": "repetición: consultar_sql con los mismos argumentos más de 2 veces"
+      },
+      "error": null
+    }
+  ],
+  "status": "repeticion_detectada",
+  "model": "guion-sin-llm",
+  "usage": {
+    "tokens_entrada": 1386,
+    "tokens_salida": 120
+  },
+  "run_id": "20261005T003526-6ff0ca",
+  "latencia_total_s": 0.005,
+  "totales": {
+    "pasos": 3,
+    "errores": 1
+  }
+}

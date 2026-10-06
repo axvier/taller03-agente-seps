@@ -1,0 +1,4 @@
+id,tipo,estado,pasos,llamadas_herramienta,errores_herramienta,excepcion,tokens_entrada,tokens_salida,segundos,esperado,acierto,abstencion,base_intacta,modelo,respuesta
+S1,simple,completed,3,2,0,,5488,334,2.68,31907399132.18,True,False,True,zai-org/GLM-5.3-Flash,"El activo total del conjunto de cooperativas de la base al 31 de agosto de 2026 fue de **USD 31.907.399.132,18**, correspondiente a las 205 entidades reportadas (segmentos 1 a 3 y mutualistas).
+
+La cifra proviene de la tabla `indicadores`, sumando la columna `activo` de todas las entidades con fecha de corte 2026-08-31."

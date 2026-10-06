@@ -1,0 +1,223 @@
+{
+  "question": "¿Cuál fue la morosidad total del segmento 1, considerado en su conjunto, en agosto de 2026?",
+  "answer": "La morosidad total del segmento 1, considerado en su conjunto (las 44 cooperativas del segmento 1 más las 4 mutualistas), fue de **8,23 %** en agosto de 2026.\n\nLa cifra se recalculó con sumas sobre la tabla `indicadores` al corte 2026-08-31 (100 × Σ cartera improductiva / Σ cartera bruta), agrupando las entidades con segmento «SEGMENTO 1» y «SEGMENTO 1 MUTUALISTA»; por separado, las cooperativas del segmento 1 registraron 8,29 % y las mutualistas 6,49 %.",
+  "trace": [
+    {
+      "paso": 1,
+      "modelo": "zai-org/GLM-5.3-Flash",
+      "tokens_entrada": 996,
+      "tokens_salida": 62,
+      "latencia_s": 0.433,
+      "action": {
+        "name": "describir_esquema",
+        "args": {}
+      },
+      "observation": {
+        "tablas": {
+          "cuentas": [
+            "codigo TEXT",
+            "descripcion TEXT",
+            "nivel INTEGER",
+            "codigo_padre TEXT"
+          ],
+          "entidades": [
+            "ruc TEXT",
+            "razon_social TEXT",
+            "segmento TEXT"
+          ],
+          "indicadores": [
+            "fecha TEXT",
+            "ruc TEXT",
+            "activo ",
+            "patrimonio ",
+            "cartera_bruta ",
+            "cartera_improductiva ",
+            "provisiones_cartera ",
+            "depositos_vista_y_plazo ",
+            "morosidad_total ",
+            "morosidad_consumo ",
+            "cobertura_cartera_problematica ",
+            "eficiencia_operativa ",
+            "intermediacion_financiera ",
+            "roa ",
+            "roe ",
+            "liquidez "
+          ],
+          "indicadores_catalogo": [
+            "indicador TEXT",
+            "ficha_seps INTEGER",
+            "formula TEXT",
+            "interpretacion TEXT"
+          ],
+          "saldos": [
+            "fecha TEXT",
+            "ruc TEXT",
+            "cuenta TEXT",
+            "saldo REAL"
+          ]
+        },
+        "fechas_de_corte": [
+          "2025-12-31",
+          "2026-01-31",
+          "2026-02-28",
+          "2026-03-31",
+          "2026-04-30",
+          "2026-05-31",
+          "2026-06-30",
+          "2026-07-31",
+          "2026-08-31"
+        ],
+        "valores_de_entidades_segmento": {
+          "SEGMENTO 1": 44,
+          "SEGMENTO 1 MUTUALISTA": 4,
+          "SEGMENTO 2": 66,
+          "SEGMENTO 3": 94
+        },
+        "reglas": [
+          "saldos.saldo está en USD; fecha es el último día del mes (AAAA-MM-DD).",
+          "El catálogo de cuentas es jerárquico: nivel 1 = 1 dígito (1 ACTIVO, 2 PASIVOS, 3 PATRIMONIO, 4 GASTOS, 5 INGRESOS, 6 CONTINGENTES, 7 ORDEN), nivel 2 = 2 dígitos, nivel 3 = 4, nivel 4 = 6. NUNCA sumes cuentas de niveles distintos: el saldo de una cuenta ya incluye a sus hijas. Filtra por el código exacto (cuenta = '14'), no con LIKE '14%'.",
+          "Las provisiones (cuenta 1499) se registran con signo negativo.",
+          "La tabla indicadores ya trae los 8 indicadores calculados por entidad y mes, en PORCENTAJE (8.29 significa 8,29 %). Úsala en lugar de recalcularlos.",
+          "Para agregados por segmento o del sistema, un indicador NO se promedia: se recalcula con sumas, por ejemplo 100*SUM(cartera_improductiva)/SUM(cartera_bruta).",
+          "entidades.segmento es el del último mes reportado.",
+          "El corte 2025-12-31 solo existe como insumo de los promedios; las preguntas del año usan 2026."
+        ],
+        "indicadores": [
+          {
+            "indicador": "morosidad_total",
+            "ficha_seps": 5,
+            "formula": "Cartera improductiva / cartera bruta. Cartera improductiva = no devenga + vencida de todas las líneas; cartera bruta = cuenta 14 − cuenta 1499.",
+            "interpretacion": "más bajo es mejor"
+          },
+          {
+            "indicador": "morosidad_consumo",
+            "ficha_seps": 16,
+            "formula": "Cartera improductiva de consumo / cartera bruta de consumo.",
+            "interpretacion": "más bajo es mejor"
+          },
+          {
+            "indicador": "cobertura_cartera_problematica",
+            "ficha_seps": 18,
+            "formula": "Provisiones de cartera (−1499) / cartera improductiva.",
+            "interpretacion": "más alto es mejor"
+          },
+          {
+            "indicador": "eficiencia_operativa",
+            "ficha_seps": 31,
+            "formula": "Gastos de operación (45) anualizados ×12/mes / activo promedio (con el diciembre previo, ÷ (mes+1)).",
+            "interpretacion": "más bajo es mejor"
+          },
+          {
+            "indicador": "intermediacion_financiera",
+            "ficha_seps": 36,
+            "formula": "Cartera bruta / (depósitos a la vista 2101 + depósitos a plazo 2103).",
+            "interpretacion": "mide cuánto de lo captado se presta"
+          },
+          {
+            "indicador": "roa",
+            "ficha_seps": 35,
+            "formula": "Resultado (5 − 4) anualizado ×12/mes / activo promedio. En diciembre: (3603 + 3604) / activo.",
+            "interpretacion": "más alto es mejor"
+          },
+          {
+            "indicador": "roe",
+            "ficha_seps": 34,
+            "formula": "Resultado (51…56 − 41…48) anualizado ×12/mes / patrimonio promedio. En diciembre: (3603 + 3604) / (3 − 3603 − 3604).",
+            "interpretacion": "más alto es mejor"
+          },
+          {
+            "indicador": "liquidez",
+            "ficha_seps": 52,
+            "formula": "Fondos disponibles (11) / depósitos a corto plazo (2101 + 2102 + 210305 + 210310).",
+            "interpretacion": "más alto es más líquido"
+          }
+        ]
+      },
+      "error": null
+    },
+    {
+      "paso": 2,
+      "modelo": "zai-org/GLM-5.3-Flash",
+      "tokens_entrada": 2191,
+      "tokens_salida": 469,
+      "latencia_s": 2.101,
+      "action": {
+        "name": "consultar_sql",
+        "args": {
+          "sql": "SELECT e.segmento,\n       100.0 * SUM(i.cartera_improductiva) / SUM(i.cartera_bruta) AS morosidad_total_segmento\nFROM indicadores i\nJOIN entidades e ON e.ruc = i.ruc\nWHERE i.fecha = '2026-08-31'\n  AND e.segmento IN ('SEGMENTO 1', 'SEGMENTO 1 MUTUALISTA')\nGROUP BY e.segmento"
+        }
+      },
+      "observation": {
+        "consulta_id": "q1",
+        "columnas": [
+          "segmento",
+          "morosidad_total_segmento"
+        ],
+        "filas_total": 2,
+        "truncado_en_servidor": false,
+        "filas": [
+          [
+            "SEGMENTO 1",
+            8.292531342679805
+          ],
+          [
+            "SEGMENTO 1 MUTUALISTA",
+            6.485046193881164
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "paso": 3,
+      "modelo": "zai-org/GLM-5.3-Flash",
+      "tokens_entrada": 2392,
+      "tokens_salida": 288,
+      "latencia_s": 1.491,
+      "action": {
+        "name": "consultar_sql",
+        "args": {
+          "sql": "SELECT 100.0 * SUM(i.cartera_improductiva) / SUM(i.cartera_bruta) AS morosidad_total_segmento1\nFROM indicadores i\nJOIN entidades e ON e.ruc = i.ruc\nWHERE i.fecha = '2026-08-31'\n  AND e.segmento IN ('SEGMENTO 1', 'SEGMENTO 1 MUTUALISTA')"
+        }
+      },
+      "observation": {
+        "consulta_id": "q2",
+        "columnas": [
+          "morosidad_total_segmento1"
+        ],
+        "filas_total": 1,
+        "truncado_en_servidor": false,
+        "filas": [
+          [
+            8.22713108898457
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "paso": 4,
+      "modelo": "zai-org/GLM-5.3-Flash",
+      "tokens_entrada": 2549,
+      "tokens_salida": 213,
+      "latencia_s": 1.043,
+      "action": null,
+      "observation": null,
+      "error": null
+    }
+  ],
+  "status": "completed",
+  "model": "zai-org/GLM-5.3-Flash",
+  "usage": {
+    "tokens_entrada": 8128,
+    "tokens_salida": 1032
+  },
+  "run_id": "20261005T011657-c9a591",
+  "aprobaciones": [],
+  "arquitectura": "langgraph",
+  "latencia_total_s": 5.23,
+  "totales": {
+    "pasos": 4,
+    "errores": 0
+  }
+}

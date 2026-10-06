@@ -5,6 +5,7 @@ qué pidió el modelo, qué observó y qué respondió, junto a la verdad de sql
 
 Uso:  python ver_traza.py M6
       python ver_traza.py M6 S2 S3
+      python ver_traza.py --carpeta traces/grafo M1     (trazas de otra corrida)
 """
 import glob
 import json
@@ -13,11 +14,16 @@ import sys
 from pathlib import Path
 
 DB = "data/output/seps.sqlite"
+args = sys.argv[1:]
 CARPETA = "traces/agente"
+if "--carpeta" in args:
+    i = args.index("--carpeta")
+    CARPETA = args[i + 1]
+    del args[i:i + 2]
 golden = {p["id"]: p for p in json.loads(Path("golden_set.json").read_text(encoding="utf-8"))["preguntas"]}
 trazas = sorted(glob.glob(f"{CARPETA}/traza-*.json"))
 
-for pid in sys.argv[1:]:
+for pid in args:
     p = golden[pid]
     candidatas = [t for t in trazas if json.loads(Path(t).read_text(encoding="utf-8"))["question"] == p["pregunta"]]
     print(f"\n{'=' * 90}\n[{pid}] {p['tipo']} · {p['pregunta']}")

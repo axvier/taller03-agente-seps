@@ -1,0 +1,126 @@
+{
+  "question": "[F1] Tope de pasos: el guion nunca da una respuesta final",
+  "answer": "No pude completar la tarea: alcancé el tope de 4 pasos. Último resultado obtenido: {\"consulta_id\": \"q4\", \"columnas\": [\"COUNT(*)\"], \"filas_total\": 1, \"truncado_en_servidor\": false, \"filas\": [[66]]}",
+  "trace": [
+    {
+      "paso": 1,
+      "modelo": "guion-sin-llm",
+      "tokens_entrada": 365,
+      "tokens_salida": 40,
+      "latencia_s": 0.0,
+      "action": {
+        "name": "consultar_sql",
+        "args": {
+          "sql": "SELECT COUNT(*) FROM entidades WHERE segmento = 'SEGMENTO 2' AND 1 = 1"
+        }
+      },
+      "observation": {
+        "consulta_id": "q1",
+        "columnas": [
+          "COUNT(*)"
+        ],
+        "filas_total": 1,
+        "truncado_en_servidor": false,
+        "filas": [
+          [
+            66
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "paso": 2,
+      "modelo": "guion-sin-llm",
+      "tokens_entrada": 467,
+      "tokens_salida": 40,
+      "latencia_s": 0.0,
+      "action": {
+        "name": "consultar_sql",
+        "args": {
+          "sql": "SELECT COUNT(*) FROM entidades WHERE segmento = 'SEGMENTO 3' AND 2 = 2"
+        }
+      },
+      "observation": {
+        "consulta_id": "q2",
+        "columnas": [
+          "COUNT(*)"
+        ],
+        "filas_total": 1,
+        "truncado_en_servidor": false,
+        "filas": [
+          [
+            94
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "paso": 3,
+      "modelo": "guion-sin-llm",
+      "tokens_entrada": 569,
+      "tokens_salida": 40,
+      "latencia_s": 0.0,
+      "action": {
+        "name": "consultar_sql",
+        "args": {
+          "sql": "SELECT COUNT(*) FROM entidades WHERE segmento = 'SEGMENTO 1' AND 3 = 3"
+        }
+      },
+      "observation": {
+        "consulta_id": "q3",
+        "columnas": [
+          "COUNT(*)"
+        ],
+        "filas_total": 1,
+        "truncado_en_servidor": false,
+        "filas": [
+          [
+            44
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "paso": 4,
+      "modelo": "guion-sin-llm",
+      "tokens_entrada": 670,
+      "tokens_salida": 40,
+      "latencia_s": 0.0,
+      "action": {
+        "name": "consultar_sql",
+        "args": {
+          "sql": "SELECT COUNT(*) FROM entidades WHERE segmento = 'SEGMENTO 2' AND 4 = 4"
+        }
+      },
+      "observation": {
+        "consulta_id": "q4",
+        "columnas": [
+          "COUNT(*)"
+        ],
+        "filas_total": 1,
+        "truncado_en_servidor": false,
+        "filas": [
+          [
+            66
+          ]
+        ]
+      },
+      "error": null
+    }
+  ],
+  "status": "max_pasos",
+  "model": "guion-sin-llm",
+  "usage": {
+    "tokens_entrada": 2071,
+    "tokens_salida": 160
+  },
+  "run_id": "20261005T003526-05f3e5",
+  "latencia_total_s": 0.011,
+  "totales": {
+    "pasos": 4,
+    "errores": 0
+  }
+}
