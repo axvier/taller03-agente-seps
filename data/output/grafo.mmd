@@ -1,0 +1,27 @@
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	router(router)
+	modelo(modelo)
+	aprobacion(aprobacion)
+	herramientas(herramientas)
+	cierre(cierre)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> router;
+	aprobacion --> herramientas;
+	herramientas -.-> cierre;
+	herramientas -.-> modelo;
+	modelo -.-> aprobacion;
+	modelo -.-> cierre;
+	modelo -.-> herramientas;
+	router -.-> cierre;
+	router -.-> modelo;
+	cierre --> __end__;
+	modelo -.-> modelo;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc

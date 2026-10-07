@@ -17,15 +17,20 @@ __pycache__/
 .env
 *.env
 
-# Datos
+# Datos: se ignora todo, salvo lo que se rescata abajo
 data/input/*
 data/output/*
 
 codigoreferencia/*
+comparacion_andamiaje/
 
 # Mantener las carpetas aunque estén vacías
 !data/input/.gitkeep
 !data/output/.gitkeep
+
+# Evidencia que SÍ se sube: gráficos y diagrama del grafo
+!data/output/graficos/
+!data/output/grafo.mmd
 
 # Temporales
 *.tmp
@@ -35,9 +40,7 @@ codigoreferencia/*
 .DS_Store
 Thumbs.db
 
+# Enunciados que no van al repositorio
 taller-03-agentes.pdf
 taller-03-v2-solver-multiagente.pdf
-
-data/input/*.txt
-data/output/*.sqlite
-comparacion_andamiaje/
+enunciados/002-Tarea02_202510.pdf
