@@ -63,3 +63,4 @@ Listo: busca 'prueba-conexion' en Tracing (rango Past 1 day).
 - agente: ['zai-org/GLM-5.3-Flash']
 - juez: ['qwen2.5:latest', 'qwen3:latest', 'gpt-oss:120b', 'nomic-embed-text:latest', 'qwen3:235b-a22b', 'llama4:maverick', 'gemma3:27b', 'llama3.2-vision:latest', 'llama4:17b-scout-16e-instruct-q4_K_M', 'qwen3:235b', 'bge-m3:latest', 'qwen3:32b', 'granite3.3:latest', 'qwen3:8b', 'llama3.1:405b']
 
+Juez elegido: `gemma3:27b`
