@@ -1,0 +1,9 @@
+{
+  "semestre": "2026-1",
+  "verified_at": "2026-08-26",
+  "nota": "Fila tomada del anexo del enunciado del Taller 04; solo se usa para estimar el costo si el agente corriera en un modelo de pago.",
+  "models": [
+    {"id": "propietario_economico", "provider": "openai", "model": "gpt-4o-mini",
+     "input_usd_per_1m": 0.15, "output_usd_per_1m": 0.60, "verified_at": "2026-08-26"}
+  ]
+}

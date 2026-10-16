@@ -5,3 +5,4 @@ python-dotenv==1.2.3
 langgraph==1.2.12
 langchain-openai==1.6.7
 langchain-anthropic==1.7.5
+langfuse==4.17.0
