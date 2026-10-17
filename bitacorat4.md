@@ -491,3 +491,11 @@ juez: gemma3:27b · prompt j1 · temperature=0
   · C-M5-r: el juez reprobó «aproximadamente 8,8 %» porque no nombra el mes (criterio de multi:
     contestar todo lo preguntado); el humano solo miró la cifra. Juez más estricto que el humano.
 - Las etiquetas no se corrigen después de ver al juez: se reportan tal como se hicieron.
+
+## 2.c Peores casos y mejora 
+### Peores casos:
+M6 multi pasos 5 tokens 12641 10.76 s describir_esquema consultar_sql consultar_sql consultar_sql 79ceba2c419515afe5ed76c7fe1d81b9
+S3 simple pasos 4 tokens 7936 5.47 s describir_esquema consultar_sql consultar_sql 4d08b0f5c11507bad6d1dd0f5740cecf
+AM1 ambigua pasos 3 tokens 5848 12.8 s describir_esquema consultar_sql 0b0c36e5d9d1020c6405463cf75d9d37
+
+captura de la traza <79ceba2c419515afe5ed76c7fe1d81b9> en el informe
