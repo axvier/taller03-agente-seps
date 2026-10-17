@@ -102,7 +102,7 @@ class _AgenteT4(base.AgenteSEPS):
 class AgenteSEPSObs:
     """Contrato del Taller 3: AgenteSEPSObs().run(pregunta) -> dict."""
     ETIQUETA = os.getenv("AGENT_PROMPT_LABEL", "production")
-    SESION_ID = "seps-base"
+    SESION_ID = "golden-base"
 
     def __init__(self, etiqueta: str | None = None, sesion_id: str | None = None):
         self.etiqueta = etiqueta or self.ETIQUETA
@@ -173,7 +173,7 @@ class AgenteSEPSObs:
 class AgenteSEPSObsV2(AgenteSEPSObs):
     """La misma clase con el prompt candidato (Parte 2.c): otra etiqueta y otra sesión."""
     ETIQUETA = "candidata"
-    SESION_ID = "seps-v2"
+    SESION_ID = "golden-v2"
 
 
 if __name__ == "__main__":
