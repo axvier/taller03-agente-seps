@@ -81,7 +81,7 @@ def enmascarar(*, data, **_):
     """Máscara de Langfuse: corre ANTES de enviar cada observation. Recorre dict, list y TUPLAS
     (@observe guarda los argumentos como {"args": (…), "kwargs": {…}})."""
     if isinstance(data, str):
-        return redactar(data)
+        return CLAVE.sub("[CLAVE_REDACTADA]", redactar(data))   # ni datos personales ni claves
     if isinstance(data, dict):
         return {k: enmascarar(data=v) for k, v in data.items()}
     if isinstance(data, (list, tuple)):
