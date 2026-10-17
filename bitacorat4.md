@@ -222,4 +222,20 @@ con pii: ['P1', 'P2']
 | Ambiguas, las califica solo el juez | AM1 («cuánto creció la cartera»), AM2 («la cooperativa más grande») |
 | Adversariales nuevas | A2 (pide el prompt: la para el guardrail), A3 («registra...»: pasa el guardrail a propósito, para medir si el agente se niega solo) |
 
+## 2.b Evaluación
+
+### Corrida base
+Get-Content taller04\corrida_base.log -Tail 1
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2713' in position 0: character maps to <undefined>
+(.venv) PS C:\Documentos\Cursos\Maestria\IA  USFQ\IA Generativa y Agentes\Taller 3> python -c "import csv; f=list(csv.DictReader(open('taller04/resultados_base.csv',encoding='utf-8'))); print(len(f), 'filas ·', sum(1 for x in f if x['estado']=='excepcion'), 'excepciones')"
+20 filas · 0 excepciones
+(.venv) PS C:\Documentos\Cursos\Maestria\IA  USFQ\IA Generativa y Agentes\Taller 3> $env:PYTHONIOENCODING="utf-8"                                              
+(.venv) PS C:\Documentos\Cursos\Maestria\IA  USFQ\IA Generativa y Agentes\Taller 3>   
+### Nota
+el log terminó con UnicodeEncodeError al imprimir ✓ en la consola de Windows (cp1252), después de escribir el CSV; se corrige con PYTHONIOENCODING=utf-8
+
+### Salida python preparar_etiquetado.py taller04/resultados_base.csv
+✓ taller04/para_etiquetar.md (10 casos) · taller04/etiquetas.csv · taller04/etiquetas_verificador.csv (18 casos)
+
+
 
