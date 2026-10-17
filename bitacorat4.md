@@ -638,6 +638,26 @@ python lab04.py resumir_trazas taller04/spans_v2.jsonl --precio propietario_econ
 Select-String -Path taller04\spans_v2.jsonl -Pattern "maria.lopez|1712345678|0991234567"
 «sin PII»
 
+### Lectura 2.c
+Peores casos (v1): M6 (5 pasos, 12.641 tokens, 10,8 s: tres consultas SQL), S3 (4 pasos, 7.936
+tokens) y AM1 (12,8 s, ambigua). Patrón común: 16 de 18 corridas empezaban con describir_esquema,
+una vuelta completa del modelo (~1 s y ~1.100 tokens) para un resultado que siempre es el mismo.
+
+Mejora: prompt v2 (Langfuse seps-analista v2, etiqueta candidata, con commit_message): el esquema
+va dentro del prompt y las preguntas ambiguas deben declarar la lectura. Mismo golden set, mismo
+evaluador, mismo modelo y mismo juez; solo cambia el prompt.
+
+Resultado v1 → v2: exactitud 12/12 → 12/12, abstención 6/6 → 6/6, juez 20/20 → 20/20 (sin pérdida).
+Pasos 52 → 36 (−30,8 %), tokens de entrada 98.685 → 79.380 (−19,6 %), costo estimado con
+gpt-4o-mini USD 0,0225 → 0,0189 (−16 %).
+Azar vs cambio: prueba de signos sobre los 18 casos pareados con agente: tokens bajan en 15 y suben
+en 3 (p = 0,0075); pasos bajan en 15 y suben en 1 (p = 0,0005). Es un cambio real, no ruido.
+Lo que NO mejoró: la latencia (segundos totales +3,4 %, p95 de la corrida 8,7 → 10,2 s). Incluye el
+tiempo del juez y la variación de la H200, y una llamada a generar_grafico (2,7 s) que v1 no hizo:
+no se puede afirmar una mejora de latencia. Suben en tokens N1, N3 y A3, que no usan herramientas:
+pagan el prompt más largo (~330 → ~1.264 tokens) sin ahorrarse ninguna vuelta.
+Con 20 casos, una diferencia de exactitud de 1 caso (5 %) estaría dentro de la resolución del golden set.
+
 ### Corrida V2
 #### Excepciones
 3 casos fallaron al crear el agente (antes de run): problema de infraestructura, no del prompt. Se repiten solo esos 3
