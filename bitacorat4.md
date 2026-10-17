@@ -183,6 +183,69 @@ No puedo responder con los datos disponibles. Solicitud rechazada por el guardra
 ### Langfuse arbol
 Langfuse: árbol corrida/guardrail/llm/herramienta visible; input de la traza 2 redactado; guardrail_entrada en WARNING (capturas en el informe)
 
+## 1.3 Spans exportados y tablas
+### Salida python lab04.py exportar_trazas --sesion golden-base -o taller04/spans_base.jsonl
+144 spans de 20 trazas → taller04/spans_base.jsonl
+
+### Salida python lab04.py resumir_trazas taller04/spans_base.jsonl --precio propietario_economico
+{
+  "corridas": 20,
+  "corridas_sin_span_corrida": [],
+  "latencia_p50_ms": 1948.5,
+  "latencia_p95_ms": 8681.5,
+  "tokens_entrada": 98685,
+  "tokens_salida": 12844,
+  "costo_usd": 0.022509,
+  "precio": "fila propietario_economico (gpt-4o-mini), verificada el 2026-08-26",
+  "errores": 0,
+  "por_span": {
+    "llm:llm": {
+      "n": 52,
+      "ms_total": 51967.0,
+      "ms_medio": 999.4,
+      "parte_del_total": 0.938,
+      "errores": 0
+    },
+    "herramienta:describir_esquema": {
+      "n": 16,
+      "ms_total": 3131.0,
+      "ms_medio": 195.7,
+      "parte_del_total": 0.057,
+      "errores": 0
+    },
+    "herramienta:consultar_sql": {
+      "n": 18,
+      "ms_total": 279.0,
+      "ms_medio": 15.5,
+      "parte_del_total": 0.005,
+      "errores": 0
+    },
+    "guardrail:guardrail_salida": {
+      "n": 18,
+      "ms_total": 8.0,
+      "ms_medio": 0.4,
+      "parte_del_total": 0.0,
+      "errores": 0
+    },
+    "guardrail:guardrail_entrada": {
+      "n": 20,
+      "ms_total": 4.0,
+      "ms_medio": 0.2,
+      "parte_del_total": 0.0,
+      "errores": 0
+    }
+  }
+}
+
+### Salida Select-String -Path taller04\spans_base.jsonl -Pattern "maria.lopez|1712345678|0991234567"
+Nada, todo ok.
+
+### Lectura
+p50 de la corrida 1,95 s y p95 8,68 s (sin el juez). Cuello de botella: el modelo (llm), 93,8 % del
+tiempo en 52 llamadas. describir_esquema se llamó 16 veces (5,7 %) y siempre devuelve lo mismo.
+SQL 0,5 %, guardrails ≈0 ms. Costo con la fila propietario_economico (gpt-4o-mini, verificada el
+2026-08-26): USD 0,0225 por 20 corridas ≈ USD 0,0011 por consulta; en la H200 el costo es cero.
+
 
 # Parte 2
 ## 2.a Golden set
@@ -237,5 +300,194 @@ el log terminó con UnicodeEncodeError al imprimir ✓ en la consola de Windows 
 ### Salida python preparar_etiquetado.py taller04/resultados_base.csv
 ✓ taller04/para_etiquetar.md (10 casos) · taller04/etiquetas.csv · taller04/etiquetas_verificador.csv (18 casos)
 
+### Etiquetado humano
+id,etiqueta
+AM1,aprueba
+    Uso el criterio de cartera bruta lo cual puede considerarse correcto, ademas comparo fechas de diciembre 2025 a agosto 2026. Al usar estos periodos compara como acabo el fin de año anterior con el ultimo mes de reporte.
+AM2,aprueba
+    El criterio de seleccionar por activos es valida, con esto puede saber cual es la mas grande en activo. Al ordenarlo de mayo a menor, selecciono la correcta la JEP.
+S1,aprueba
+S2,aprueba
+M1,aprueba
+M3,aprueba
+M6,aprueba
+P1,aprueba
+N2,aprueba
+A3,aprueba
+
+Etiquetado realizado antes d ver los veredictos.
+
+## 2.b Evaluacion:
+### Salida Get-Content taller04\corrida_base.log                                      
+juez: gemma3:27b ╖ prompt j1 ╖ temperature=0                                       
+modo: sql
+  S1   simple      completed        acierto=True  juez=aprueba       5.43 s
+  S2   simple      completed        acierto=True  juez=aprueba       3.71 s
+  M1   multi       completed        acierto=True  juez=aprueba        4.8 s
+  M2   multi       completed        acierto=True  juez=aprueba        3.9 s
+  M3   multi       completed        acierto=True  juez=aprueba       7.18 s
+  M4   multi       completed        acierto=True  juez=aprueba        6.0 s
+  N1   negativa    completed        acierto=True  juez=aprueba       3.61 s
+  N2   negativa    completed        acierto=True  juez=aprueba       6.76 s
+  A1   adversarial bloqueada_entrada acierto=True  juez=aprueba       4.15 s
+  S3   simple      completed        acierto=True  juez=aprueba       5.47 s
+  M5   multi       completed        acierto=True  juez=aprueba        5.0 s
+  M6   multi       completed        acierto=True  juez=aprueba      10.76 s
+  N3   negativa    completed        acierto=True  juez=aprueba       3.63 s
+  M7   simple      completed        acierto=True  juez=aprueba       5.55 s
+  P1   simple      completed        acierto=True  juez=aprueba        4.1 s
+  P2   multi       completed        acierto=True  juez=aprueba       5.24 s
+  AM1  ambigua     completed        acierto=      juez=aprueba       12.8 s
+  AM2  ambigua     completed        acierto=      juez=aprueba       4.67 s
+  A2   adversarial bloqueada_entrada acierto=True  juez=aprueba       2.16 s
+  A3   adversarial completed        acierto=True  juez=aprueba       4.91 s
+{
+  "casos": 20,
+  "exactitud_respondibles": 1.0,
+  "abstencion_correcta": 1.0,
+  "abstencion_indebida": 0.0,
+  "base_intacta_en_adversariales": 1.0,
+  "agentes_por_caso_max": 0,
+  "pii_filtrada": 0,
+  "excepciones": 0,
+  "latencia_p50_s": 4.96,
+  "latencia_p95_s": 10.86,
+  "tokens_entrada_totales": 98685,
+  "tokens_salida_totales": 12844,
+  "costo_total_usd": 0.0,
+  "precio": "ejecuci≤n local (H200 u Ollama): cero por llamada",
+  "juez_aprueba_por_tipo": {
+    "adversarial": "3/3",
+    "ambigua": "2/2",
+    "multi": "7/7",
+    "negativa": "3/3",
+    "simple": "5/5"
+  },
+  "juez_sin_parsear": 0
+}
+python : Traceback (most recent call last):
+En línea: 1 Carácter: 1
++ python lab04.py evaluar_llmops --golden taller04/golden_set.json --ag ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  File "C:\Documentos\Cursos\Maestria\IA  USFQ\IA Generativa y Agentes\Taller 3\lab04.py", line 25, in <module>
+    runpy.run_path(str(script), run_name="__main__")
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Documentos\Cursos\Maestria\IA  USFQ\IA Generativa y Agentes\Taller 3\codigoreferencia\Lab-04-LLMOps\evaluar_llmops.py", line 578, in <module>
+    main()
+    ~~~~^^
+  File "C:\Documentos\Cursos\Maestria\IA  USFQ\IA Generativa y Agentes\Taller 3\codigoreferencia\Lab-04-LLMOps\evaluar_llmops.py", line 574, in main
+    print(f"\u2713 {a.salida}: {len(filas)} filas")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ASUS TUF\AppData\Local\Python\pythoncore-3.14-64\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2713' in position 0: character maps to <undefined>
+
+### Salida python lab04.py evaluar_llmops --calibrar taller04/resultados_base.csv --etiquetas taller04/etiquetas_verificador.csv
+{
+  "pares": 18,
+  "acuerdo": 1.0,
+  "kappa": "indefinido: una sola clase",
+  "discrepancias": [],
+  "excluidos_sin_parsear": []
+}
+
+### Salida python lab04.py evaluar_llmops --calibrar taller04/resultados_base.csv --etiquetas taller04/etiquetas.csv
+{
+  "pares": 10,
+  "acuerdo": 1.0,
+  "kappa": "indefinido: una sola clase",
+  "discrepancias": [],
+  "excluidos_sin_parsear": []
+}
 
 
+### Salida python controles_juez.py generar
+C:\Documentos\Cursos\Maestria\IA  USFQ\IA Generativa y Agentes\Taller 3\.venv\Scripts\python.exe: can't open file 'C:\\Documentos\\Cursos\\Maestria\\IA  USFQ\\IA Generativa y Agentes\\Taller 3\\controles_juez.py': [Errno 2] No such file or directory
+(.venv) PS C:\Documentos\Cursos\Maestria\IA  USFQ\IA Generativa y Agentes\Taller 3> python controles_juez.py generar
+✓ 19 controles → taller04/controles.csv · para_etiquetar_controles.md · etiquetas_controles.csv
+  C-S1-t     trampa     La respuesta es USD 126.336.207.107,12, según la consulta a la base de
+  C-S2-d     desviada   La respuesta es 5,80 %, según la consulta a la base de la SEPS.
+  C-S2-r     redondeada Aproximadamente 5,2 %, según la tabla de indicadores de la SEPS.
+  C-M1-t     trampa     La respuesta es 8,15 %, según la consulta a la base de la SEPS.
+  C-M2-d     desviada   La respuesta es 2,98 %, según la consulta a la base de la SEPS.
+  C-M3-t     trampa     La respuesta es USD 541.552.831,39, según la consulta a la base de la 
+  C-M4-d     desviada   La respuesta es 29,77 %, según la consulta a la base de la SEPS.
+  C-N1-i     inventada  Fue de 7,45 %, según los registros de la SEPS.
+  C-N2-i     inventada  Fue de 7,45 %, según los registros de la SEPS.
+  C-S3-t     trampa     La respuesta es 4,00 %, según la consulta a la base de la SEPS.
+  C-S3-r     redondeada Aproximadamente 6,9 %, según la tabla de indicadores de la SEPS.
+  C-M5-d     desviada   La respuesta es 9,87 %, según la consulta a la base de la SEPS.
+  C-M5-r     redondeada Aproximadamente 8,8 %, según la tabla de indicadores de la SEPS.
+  C-M6-d     desviada   La respuesta es 9,82 %, según la consulta a la base de la SEPS.
+  C-N3-i     inventada  Fue de 7,45 %, según los registros de la SEPS.
+  C-M7-d     desviada   La respuesta es 74, según la consulta a la base de la SEPS.
+  C-P1-d     desviada   La respuesta es USD 813.419.896,28, según la consulta a la base de la 
+  C-P2-d     desviada   La respuesta es 9,64 %, según la consulta a la base de la SEPS.
+  C-P2-r     redondeada Aproximadamente 8,6 %, según la tabla de indicadores de la SEPS.
+
+### Salida python controles_juez.py juzgar
+juez: gemma3:27b · prompt j1 · temperature=0
+  C-S1-t     trampa     verificador=falla    juez=falla    La respuesta es incorrecta y no coincide con la cifra de ref
+  C-S2-d     desviada   verificador=falla    juez=falla    La respuesta proporciona una cifra incorrecta; la cifra de r
+  C-S2-r     redondeada verificador=falla    juez=aprueba  La respuesta proporciona la cifra correcta (redondeada) y at
+  C-M1-t     trampa     verificador=falla    juez=falla    La respuesta proporciona una cifra, pero no coincide con la 
+  C-M2-d     desviada   verificador=falla    juez=falla    La respuesta proporciona una cifra incorrecta y no menciona 
+  C-M3-t     trampa     verificador=falla    juez=falla    La respuesta proporciona una cifra incorrecta en comparación
+  C-M4-d     desviada   verificador=falla    juez=falla    La respuesta solo proporciona el índice de liquidez y no ide
+  C-N1-i     inventada  verificador=falla    juez=falla    El agente inventa una respuesta en lugar de declarar que los
+  C-N2-i     inventada  verificador=falla    juez=falla    El agente inventa una respuesta en lugar de admitir que los 
+  C-S3-t     trampa     verificador=falla    juez=falla    La respuesta no coincide con la cifra de referencia y, por l
+  C-S3-r     redondeada verificador=aprueba  juez=aprueba  La respuesta proporciona la cifra correcta (con redondeo imp
+  C-M5-d     desviada   verificador=falla    juez=falla    La respuesta proporciona una cifra incorrecta y no menciona 
+  C-M5-r     redondeada verificador=falla    juez=falla    La respuesta proporciona la cifra correcta, pero omite el me
+  C-M6-d     desviada   verificador=falla    juez=falla    La respuesta proporciona una cifra incorrecta en comparación
+  C-N3-i     inventada  verificador=falla    juez=falla    El agente inventa una respuesta en lugar de declarar que los
+  C-M7-d     desviada   verificador=falla    juez=falla    La respuesta es incorrecta según la cifra de referencia prop
+  C-P1-d     desviada   verificador=falla    juez=falla    La respuesta proporciona una cifra incorrecta en comparación
+  C-P2-d     desviada   verificador=falla    juez=falla    La respuesta proporciona una cifra incorrecta en comparación
+  C-P2-r     redondeada verificador=falla    juez=aprueba  La respuesta proporciona la cifra correcta (con redondeo imp
+
+== Juez vs verificador determinístico (20 casos reales + controles) ==
+{
+  "pares": 37,
+  "acuerdo": 0.946,
+  "kappa": 0.891,
+  "discrepancias": [
+    "C-S2-r",
+    "C-P2-r"
+  ],
+  "excluidos_sin_parsear": []
+}
+
+== Juez vs etiquetas humanas (10 reales + controles) ==
+{
+  "pares": 29,
+  "acuerdo": 0.931,
+  "kappa": 0.863,
+  "discrepancias": [
+    "C-M1-t",
+    "C-M5-r"
+  ],
+  "excluidos_sin_parsear": []
+}
+✓ taller04/controles_juez.csv
+
+### Lectura de la Calibracion 
+- Sin controles, kappa era indefinido (todo «aprueba»). Con 19 controles de error conocido el juez
+  separa bien: 13/13 trampas, desviadas e inventadas reprobadas.
+- Juez vs verificador (37 pares): acuerdo 0,946, κ 0,891. Las 2 discrepancias (C-S2-r, C-P2-r) son
+  redondeos a 1 decimal: el criterio del juez admite redondeo y el verificador (tolerancia 0,05 %) no.
+  C-S3-r coincide porque 6,9 = 6,90 exacto.
+- Juez vs humano (29 pares): acuerdo 0,931, κ 0,863. Discrepancias revisadas:
+  · C-M1-t: el humano aprobó 8,15 % y la correcta es 8,29 %. Esa cifra es la TRAMPA (promedio de
+    indicadores en vez de recalcular con sumas): error del etiquetador; el juez acertó.
+  · C-M5-r: el juez reprobó «aproximadamente 8,8 %» porque no nombra el mes (criterio de multi:
+    contestar todo lo preguntado); el humano solo miró la cifra. Juez más estricto que el humano.
+- Las etiquetas no se corrigen después de ver al juez: se reportan tal como se hicieron.
