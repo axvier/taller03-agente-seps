@@ -822,3 +822,34 @@ de salida (inyección de fallas). El guardrail la bloqueó y la máscara la ocul
 Guardrails por corrida (spans): entrada 0,2 ms (v1) a 2,4 ms (v2), salida 0,4–0,8 ms, frente a
 una corrida de p50 1,7–1,9 s: menos del 0,2 % del tiempo. El bloqueo en la entrada AHORRA costo:
 A1, A2 y G1 terminaron en ~0,004 s, con 0 tokens, sin llamar al modelo.
+
+# Parte 4
+## 4.a Decisión sobre fine-tuning
+Decisión: NO ajustar pesos. Árbol de decisión prompt → recuperar → pesos:
+1) Prompt: con prompt y herramientas el agente acierta 12/12 respondibles y 6/6 abstenciones; la
+   única mejora que hizo falta (costo) se resolvió con el prompt v2: −19,6 % tokens, −30,8 % pasos.
+2) Recuperar: la información ya se recupera en cada pregunta con consultar_sql sobre la base SEPS,
+   que cambia cada mes. Los pesos congelarían cifras que caducan; la consulta no.
+3) Pesos: solo si quedara una brecha estable de comportamiento después de 1 y 2, y con cientos de
+   ejemplos etiquetados. Hoy no hay brecha y hay 20 casos.
+Si algún día hiciera falta (p. ej., un modelo pequeño que no genera bien el SQL del dominio):
+LoRA, no ajuste completo. Hu et al. (2021, §7.1, Tabla 5): con el mismo presupuesto de 18M
+parámetros, adaptar Wq y Wv con r=4 da 73,7 % en WikiSQL (texto a SQL, como esta tarea), frente a
+70,4 % adaptando solo Wq con r=8: conviene repartir un rango pequeño en más matrices. Dettmers et
+al. (2023, §4): LoRA solo en query y value no alcanza al ajuste completo en modelos grandes; hay
+que aplicarlo a todas las capas lineales, y QLoRA en 4 bits (NF4) iguala a LoRA de 16 bits y al
+ajuste completo (Tabla 3), así que cabría en una sola GPU. El costo de cómputo no es la barrera:
+la barrera es que no hay una brecha que cerrar ni datos para cerrarla.
+
+## 4.b Alertas:
+Resolución del golden set: 1/20 = 5 % (1/12 = 8,3 % en respondibles). Ningún umbral se fija por
+debajo de un caso. Cifras medidas en este taller (spans v1 y v2):
+
+| Alerta | Medido | Umbral | Por qué |
+|---|---|---|---|
+| Exactitud en respondibles (golden set en cada cambio de prompt o modelo) | 12/12 en v1 y v2 | Alerta si falla ≥1 respondible en 2 corridas seguidas | 1 caso = 8,3 % > resolución; exigir 2 corridas separa el fallo real del muestreo del modelo |
+| Latencia p95 de la corrida (spans, ventana de 50 corridas) | p95 8,7 s (v1) y 10,2 s (v2); p50 1,7–1,9 s | Alerta si p95 > 15 s o p50 > 3 s | ~1,5× el peor p95 medido; el 94 % del tiempo es el modelo, así que avisa de degradación de la H200 o de un prompt que vuelve a sumar vueltas |
+| Datos personales o claves en la salida/traza | 0 PII filtrada (pii_filtrada = 0), 0 claves reales | Alerta inmediata ante 1 sola ocurrencia (guardrail_salida = bloqueada por clave, o PII en spans) | Es un incidente, no una tasa: un solo caso deja el sistema fuera de norma |
+
+Complemento de costo (dentro de la alerta 2): tokens de entrada por corrida, mediana v2 ≈ 4.450.
+Si la mediana supera 6.000 (nivel de v1 + 10 %), el prompt o el agente volvieron a describir_esquema.

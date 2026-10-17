@@ -20,6 +20,6 @@ if len(sys.argv) < 2:
 script = LAB04 / f"{sys.argv[1]}.py"
 if not script.exists():
     sys.exit(f"No existe {script}")
-sys.path.insert(0, str(ROOT))
+sys.path[:0] = [str(LAB04), str(ROOT)]   # los módulos del lab y src/ del Taller 3
 sys.argv = [str(script)] + sys.argv[2:]
 runpy.run_path(str(script), run_name="__main__")
